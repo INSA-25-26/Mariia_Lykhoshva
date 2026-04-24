@@ -136,9 +136,11 @@ docker run --rm -p 8000:8000 pipeline-project:local
 
 The repo now includes an Azure-oriented deployment stack:
 
-- `docker-compose.yml` - runs the API, Prometheus, and Grafana together
+- `docker-compose.yml` - runs the API, Prometheus, Grafana, Loki, and Promtail together
 - `deploy/prometheus/` - Prometheus scrape configuration
-- `deploy/grafana/` - Grafana datasource and dashboard provisioning
+- `deploy/loki/` - Loki storage and log aggregation configuration
+- `deploy/promtail/` - Promtail config for shipping container logs to Loki
+- `deploy/grafana/` - Grafana datasource and dashboard provisioning for metrics and logs
 - `infra/terraform/` - Azure VM provisioning (VNet, subnet, NSG, public IP)
 - `infra/ansible/` - Docker installation and service deployment on the VM
 
@@ -147,7 +149,7 @@ The repo now includes an Azure-oriented deployment stack:
 1. Build and publish the Docker image with GitHub Actions.
 2. Use Terraform to create an Azure Linux VM and network/security resources.
 3. Use Ansible to install Docker, clone the repository, and start the stack with `docker compose`.
-4. Open the app at `http://<vm-public-ip>:8000`, Grafana at `http://<vm-public-ip>:3000`, and Prometheus at `http://<vm-public-ip>:9090`.
+4. Open the app at `http://<vm-public-ip>:8000`, Grafana at `http://<vm-public-ip>:3000`, Prometheus at `http://<vm-public-ip>:9090`, and Loki at `http://<vm-public-ip>:3100`.
 
 ### Fully automated deploy with GitHub Actions
 
@@ -207,3 +209,4 @@ Then open:
 - `http://localhost:8000/metrics`
 - `http://localhost:3000/`
 - `http://localhost:9090/`
+- `http://localhost:3100/`
