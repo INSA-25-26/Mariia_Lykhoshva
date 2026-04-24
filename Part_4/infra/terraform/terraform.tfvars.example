@@ -1,0 +1,8 @@
+subscription_id  = "00000000-0000-0000-0000-000000000000"
+azure_location   = "westeurope"
+vm_size          = "Standard_B1s"
+resource_group_name = "rg-pipeline-project"
+instance_name    = "pipeline-project"
+admin_username   = "azureuser"
+public_key_path  = "~/.ssh/id_rsa.pub"
+private_key_path = "~/.ssh/id_rsa"

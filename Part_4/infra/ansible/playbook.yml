@@ -1,0 +1,88 @@
+---
+- name: Deploy pipeline project stack on Azure VM
+  hosts: app
+  become: true
+  vars:
+    app_dir: /opt/pipeline-project
+    repo_url: https://github.com/INSA-25-26/Mariia_Lykhoshva.git
+    repo_version: main
+    grafana_admin_password: admin123
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install base utilities
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Install Docker and compose plugin
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Ensure Docker service is started
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Clone the repository
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ repo_version }}"
+        force: true
+
+    - name: Write Grafana admin password
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/.env"
+        content: |
+          GRAFANA_ADMIN_PASSWORD={{ grafana_admin_password }}
+        mode: "0600"
+
+    - name: Start the stack
+      ansible.builtin.command: docker compose up -d --build
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Wait for application health endpoint
+      ansible.builtin.uri:
+        url: http://localhost:8000/health
+        status_code: 200
+      register: health_result
+      retries: 20
+      delay: 3
+      until: health_result.status == 200
+
+    - name: Wait for Prometheus
+      ansible.builtin.uri:
+        url: http://localhost:9090/-/healthy
+        status_code: 200
+      register: prometheus_result
+      retries: 20
+      delay: 3
+      until: prometheus_result.status == 200
+
+    - name: Wait for Grafana
+      ansible.builtin.uri:
+        url: http://localhost:3000/login
+        status_code: 200
+      register: grafana_result
+      retries: 20
+      delay: 3
+      until: grafana_result.status == 200

@@ -1,0 +1,11 @@
+.venv/
+.venv-1/
+.vscode/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.env
+*.tfvars
