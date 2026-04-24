@@ -4,6 +4,7 @@
   become: true
   vars:
     app_dir: /opt/pipeline-project
+    project_subdir: Part_4
     repo_url: https://github.com/INSA-25-26/Mariia_Lykhoshva.git
     repo_version: main
     grafana_admin_password: admin123
@@ -50,7 +51,7 @@
 
     - name: Write Grafana admin password
       ansible.builtin.copy:
-        dest: "{{ app_dir }}/.env"
+        dest: "{{ app_dir }}/{{ project_subdir }}/.env"
         content: |
           GRAFANA_ADMIN_PASSWORD={{ grafana_admin_password }}
         mode: "0600"
@@ -58,7 +59,7 @@
     - name: Start the stack
       ansible.builtin.command: docker compose up -d --build
       args:
-        chdir: "{{ app_dir }}"
+        chdir: "{{ app_dir }}/{{ project_subdir }}"
 
     - name: Wait for application health endpoint
       ansible.builtin.uri:

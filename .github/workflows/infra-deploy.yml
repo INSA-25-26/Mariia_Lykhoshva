@@ -52,11 +52,11 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init
-        working-directory: infra/terraform
+        working-directory: Part_4/infra/terraform
         run: terraform init
 
       - name: Terraform apply
-        working-directory: infra/terraform
+        working-directory: Part_4/infra/terraform
         run: |
           terraform apply -auto-approve \
             -var "subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
@@ -75,21 +75,21 @@ jobs:
       - name: Deploy stack with Ansible
         shell: bash
         run: |
-          INSTANCE_IP=$(terraform -chdir=infra/terraform output -raw instance_public_ip)
+          INSTANCE_IP=$(terraform -chdir=Part_4/infra/terraform output -raw instance_public_ip)
           ansible-playbook \
             -i "${INSTANCE_IP}," \
             -u azureuser \
             --private-key "$HOME/.ssh/pipeline-project" \
             --ssh-common-args='-o StrictHostKeyChecking=no' \
-            infra/ansible/playbook.yml \
+            Part_4/infra/ansible/playbook.yml \
             --extra-vars "repo_url=https://github.com/${GITHUB_REPOSITORY}.git repo_version=${GITHUB_REF_NAME} grafana_admin_password=${{ secrets.GRAFANA_ADMIN_PASSWORD }}"
 
       - name: Print service URLs
         shell: bash
         run: |
-          APP_URL=$(terraform -chdir=infra/terraform output -raw application_url)
-          GRAFANA_URL=$(terraform -chdir=infra/terraform output -raw grafana_url)
-          PROMETHEUS_URL=$(terraform -chdir=infra/terraform output -raw prometheus_url)
+          APP_URL=$(terraform -chdir=Part_4/infra/terraform output -raw application_url)
+          GRAFANA_URL=$(terraform -chdir=Part_4/infra/terraform output -raw grafana_url)
+          PROMETHEUS_URL=$(terraform -chdir=Part_4/infra/terraform output -raw prometheus_url)
           echo "APP_URL=$APP_URL" >> "$GITHUB_ENV"
           echo "GRAFANA_URL=$GRAFANA_URL" >> "$GITHUB_ENV"
           echo "PROMETHEUS_URL=$PROMETHEUS_URL" >> "$GITHUB_ENV"
