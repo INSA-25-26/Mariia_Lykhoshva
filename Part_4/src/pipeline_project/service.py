@@ -1,4 +1,5 @@
 from functools import lru_cache
+import os
 from pathlib import Path
 
 import joblib
@@ -38,6 +39,18 @@ def _project_root() -> Path:
     return Path.cwd().resolve()
 
 
+def _prediction_threshold() -> float:
+    raw_value = os.getenv("PREDICTION_THRESHOLD", "0.5")
+    try:
+        threshold = float(raw_value)
+    except ValueError:
+        return 0.5
+
+    if threshold < 0.0 or threshold > 1.0:
+        return 0.5
+    return threshold
+
+
 @lru_cache(maxsize=1)
 def _load_artifacts() -> tuple:
     project_root = _project_root()
@@ -65,13 +78,12 @@ def predict_from_request(payload: PredictionRequest) -> PredictionResponse:
     features = processed_df.reindex(columns=columns, fill_value=0)
 
     try:
-        prediction = bool(model.predict(features)[0])
         probability = float(model.predict_proba(features)[0][1])
     except Exception:
         train(_project_root())
         _load_artifacts.cache_clear()
         model, columns = _load_artifacts.__wrapped__()
         features = processed_df.reindex(columns=columns, fill_value=0)
-        prediction = bool(model.predict(features)[0])
         probability = float(model.predict_proba(features)[0][1])
+    prediction = probability >= _prediction_threshold()
     return PredictionResponse(prediction=prediction, probability=probability)
