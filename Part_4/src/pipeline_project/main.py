@@ -199,7 +199,8 @@ def root() -> str:
                 <label>Work class <select name="workclass" required><option value="">-- Select --</option><option value="Federal-gov">Federal-gov</option><option value="Local-gov">Local-gov</option><option value="Private" selected>Private</option><option value="Self-emp-inc">Self-emp-inc</option><option value="Self-emp-not-inc">Self-emp-not-inc</option><option value="State-gov">State-gov</option></select></label>
                 <label>Final weight (fnlwgt) <input name="fnlwgt" type="number" min="1" value="77516" required></label>
                 <label>Education level <select name="education" required><option value="">-- Select --</option><option value="1st-4th">1st-4th</option><option value="5th-6th">5th-6th</option><option value="7th-8th">7th-8th</option><option value="9th">9th</option><option value="10th">10th</option><option value="11th">11th</option><option value="12th">12th</option><option value="Assoc-acdm">Assoc-acdm</option><option value="Assoc-voc">Assoc-voc</option><option value="Bachelors" selected>Bachelors</option><option value="Doctorate">Doctorate</option><option value="HS-grad">HS-grad</option><option value="Masters">Masters</option><option value="Prof-school">Prof-school</option><option value="Some-college">Some-college</option></select><span class="small">Education number is auto-filled from this value.</span></label>
-                <label>Education number <select name="education.num" required><option value="">-- Select --</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13" selected>13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option></select></label>
+                <label>Education number <select name="education.num_display" required disabled><option value="">-- Select --</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13" selected>13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option></select><span class="small">(Auto-filled from Education level)</span></label>
+                <input type="hidden" name="education.num" id="hiddenEducationNum" value="13">
                 <label>Marital status <select name="marital.status" required><option value="">-- Select --</option><option value="Divorced">Divorced</option><option value="Married-civ-spouse">Married-civ-spouse</option><option value="Married-spouse-absent">Married-spouse-absent</option><option value="Never-married" selected>Never-married</option><option value="Separated">Separated</option><option value="Widowed">Widowed</option></select></label>
                 <label>Occupation <select name="occupation" required><option value="">-- Select --</option><option value="Adm-clerical" selected>Adm-clerical</option><option value="Armed-Forces">Armed-Forces</option><option value="Craft-repair">Craft-repair</option><option value="Exec-managerial">Exec-managerial</option><option value="Farming-fishing">Farming-fishing</option><option value="Handlers-cleaners">Handlers-cleaners</option><option value="Machine-op-inspct">Machine-op-inspct</option><option value="Other-service">Other-service</option><option value="Priv-house-serv">Priv-house-serv</option><option value="Prof-specialty">Prof-specialty</option><option value="Protective-serv">Protective-serv</option><option value="Sales">Sales</option><option value="Tech-support">Tech-support</option><option value="Transport-moving">Transport-moving</option></select></label>
                 <label>Relationship <select name="relationship" required><option value="">-- Select --</option><option value="Husband">Husband</option><option value="Not-in-family" selected>Not-in-family</option><option value="Other-relative">Other-relative</option><option value="Own-child">Own-child</option><option value="Unmarried">Unmarried</option><option value="Wife">Wife</option></select></label>
@@ -225,8 +226,9 @@ def root() -> str:
     <script>
         const form = document.getElementById('prediction-form');
         const result = document.getElementById('result');
-        const educationSelect = form.querySelector('select[name="education"]');
-        const educationNumSelect = form.querySelector('select[name="education.num"]');
+        const educationSelect = form.querySelector('select[name="education.level"]');
+        const educationNumDisplay = form.querySelector('select[name="education.num_display"]');
+        const hiddenEducationNum = document.getElementById('hiddenEducationNum');
         const educationNumberByLevel = {
             '1st-4th': '2',
             '5th-6th': '3',
@@ -248,7 +250,8 @@ def root() -> str:
         function syncEducationNumber() {
             const mapped = educationNumberByLevel[educationSelect.value];
             if (mapped) {
-                educationNumSelect.value = mapped;
+                educationNumDisplay.value = mapped;
+                if (hiddenEducationNum) hiddenEducationNum.value = mapped;
             }
         }
 
@@ -287,11 +290,10 @@ def root() -> str:
             event.preventDefault();
             result.innerHTML = '<div class="small">Predicting...</div>';
 
+            // Ensure education.num is synced before submission
+            syncEducationNumber();
+            
             const payload = Object.fromEntries(new FormData(form).entries());
-            const mappedEducationNum = educationNumberByLevel[payload.education];
-            if (mappedEducationNum) {
-                payload['education.num'] = mappedEducationNum;
-            }
             for (const key of Object.keys(payload)) {
                 if (!Number.isNaN(Number(payload[key])) && payload[key].trim?.() !== '') {
                     payload[key] = Number(payload[key]);
