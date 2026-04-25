@@ -11,8 +11,9 @@ from pipeline_project.utils import load_model
 
 @lru_cache(maxsize=1)
 def _load_artifacts() -> tuple:
-    model_path = Path("models/model.pkl")
-    columns_path = Path("models/columns.pkl")
+    project_root = Path(__file__).resolve().parents[3]
+    model_path = project_root / "models" / "model.pkl"
+    columns_path = project_root / "models" / "columns.pkl"
 
     if not model_path.exists() or not columns_path.exists():
         raise FileNotFoundError("Model artifacts are missing. Run training before serving predictions.")
