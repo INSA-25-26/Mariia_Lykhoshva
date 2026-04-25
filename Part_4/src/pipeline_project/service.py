@@ -10,8 +10,32 @@ from pipeline_project.train import train
 from pipeline_project.utils import load_model
 
 
+def _candidate_roots() -> list[Path]:
+    cwd = Path.cwd().resolve()
+    file_path = Path(__file__).resolve()
+    candidates = [
+        cwd,
+        cwd.parent,
+        file_path.parents[2],
+        file_path.parents[1],
+    ]
+
+    seen = set()
+    unique_candidates = []
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            seen.add(key)
+            unique_candidates.append(candidate)
+
+    return unique_candidates
+
+
 def _project_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    for root in _candidate_roots():
+        if (root / "models" / "model.pkl").exists() and (root / "models" / "columns.pkl").exists():
+            return root
+    return Path.cwd().resolve()
 
 
 @lru_cache(maxsize=1)
@@ -45,6 +69,7 @@ def predict_from_request(payload: PredictionRequest) -> PredictionResponse:
         probability = float(model.predict_proba(features)[0][1])
     except Exception:
         train(_project_root())
+        _load_artifacts.cache_clear()
         model, columns = _load_artifacts.__wrapped__()
         features = processed_df.reindex(columns=columns, fill_value=0)
         prediction = bool(model.predict(features)[0])

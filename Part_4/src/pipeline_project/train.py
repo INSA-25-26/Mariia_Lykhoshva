@@ -10,7 +10,13 @@ from sklearn.linear_model import LogisticRegression
 
 def load_data(base_dir: Path | None = None):
     search_root = Path(base_dir) if base_dir is not None else Path.cwd()
-    candidates = [search_root / "data.csv", *search_root.glob("**/data.csv")]
+    cwd = Path.cwd()
+    candidates = [
+        search_root / "data.csv",
+        cwd / "data.csv",
+        *search_root.glob("**/data.csv"),
+        *cwd.glob("**/data.csv"),
+    ]
     data_path = next((p for p in candidates if p.exists()), None)
     
     if data_path is None:
