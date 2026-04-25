@@ -6,20 +6,30 @@ import pandas as pd
 
 from pipeline_project.schemas import PredictionRequest, PredictionResponse
 from pipeline_project.train import preprocess
+from pipeline_project.train import train
 from pipeline_project.utils import load_model
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
 
 
 @lru_cache(maxsize=1)
 def _load_artifacts() -> tuple:
-    project_root = Path(__file__).resolve().parents[2]
+    project_root = _project_root()
     model_path = project_root / "models" / "model.pkl"
     columns_path = project_root / "models" / "columns.pkl"
 
     if not model_path.exists() or not columns_path.exists():
-        raise FileNotFoundError("Model artifacts are missing. Run training before serving predictions.")
+        train(project_root)
 
-    model = load_model(str(model_path))
-    columns = joblib.load(columns_path)
+    try:
+        model = load_model(str(model_path))
+        columns = joblib.load(columns_path)
+    except Exception:
+        train(project_root)
+        model = load_model(str(model_path))
+        columns = joblib.load(columns_path)
     return model, columns
 
 
@@ -30,6 +40,13 @@ def predict_from_request(payload: PredictionRequest) -> PredictionResponse:
     processed_df = preprocess(raw_df)
     features = processed_df.reindex(columns=columns, fill_value=0)
 
-    prediction = bool(model.predict(features)[0])
-    probability = float(model.predict_proba(features)[0][1])
+    try:
+        prediction = bool(model.predict(features)[0])
+        probability = float(model.predict_proba(features)[0][1])
+    except Exception:
+        train(_project_root())
+        model, columns = _load_artifacts.__wrapped__()
+        features = processed_df.reindex(columns=columns, fill_value=0)
+        prediction = bool(model.predict(features)[0])
+        probability = float(model.predict_proba(features)[0][1])
     return PredictionResponse(prediction=prediction, probability=probability)

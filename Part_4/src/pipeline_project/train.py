@@ -8,8 +8,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 
 
-def load_data():
-    candidates = [Path("data.csv"), *Path.cwd().glob("**/data.csv")]
+def load_data(base_dir: Path | None = None):
+    search_root = Path(base_dir) if base_dir is not None else Path.cwd()
+    candidates = [search_root / "data.csv", *search_root.glob("**/data.csv")]
     data_path = next((p for p in candidates if p.exists()), None)
     
     if data_path is None:
@@ -55,8 +56,9 @@ def preprocess(df):
     return df
 
 
-def train():
-    df = load_data()
+def train(base_dir: Path | None = None):
+    project_root = Path(base_dir) if base_dir is not None else Path.cwd()
+    df = load_data(project_root)
     df = preprocess(df)
 
     X = df.drop("income", axis=1)
@@ -73,10 +75,11 @@ def train():
 
 
     pipeline.fit(X_train, y_train)
-    Path("models").mkdir(exist_ok=True)
+    output_dir = project_root / "models"
+    output_dir.mkdir(exist_ok=True)
 
-    joblib.dump(pipeline, "models/model.pkl")
-    joblib.dump(X_train.columns, "models/columns.pkl")
+    joblib.dump(pipeline, output_dir / "model.pkl")
+    joblib.dump(X_train.columns, output_dir / "columns.pkl")
 
 
 if __name__ == "__main__":
