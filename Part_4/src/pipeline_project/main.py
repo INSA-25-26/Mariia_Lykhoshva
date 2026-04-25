@@ -181,6 +181,32 @@ def root() -> str:
             color: var(--muted);
             font-size: 0.9rem;
         }
+        .links {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            display: grid;
+            gap: 8px;
+        }
+        .links h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        .links ul {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 4px;
+        }
+        .links a {
+            color: var(--accent-dark);
+            text-decoration: none;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
         @media (max-width: 840px) {
             .content { grid-template-columns: 1fr; }
             form { grid-template-columns: 1fr; }
@@ -220,15 +246,31 @@ def root() -> str:
                 <div class="result-box" id="result">
                     <div class="small">Fill the form and press Predict.</div>
                 </div>
+                <section class="links" aria-label="Service links">
+                    <h3>Quick links</h3>
+                    <ul>
+                        <li><a id="link-root" href="/" target="_blank" rel="noopener noreferrer">Service root</a></li>
+                        <li><a id="link-health" href="/health" target="_blank" rel="noopener noreferrer">Health endpoint</a></li>
+                        <li><a id="link-metrics" href="/metrics" target="_blank" rel="noopener noreferrer">Metrics endpoint</a></li>
+                        <li><a id="link-docs" href="/docs" target="_blank" rel="noopener noreferrer">Swagger docs</a></li>
+                    </ul>
+                    <div class="small">Share these public links with the teacher (not localhost).</div>
+                </section>
             </aside>
         </section>
     </main>
     <script>
         const form = document.getElementById('prediction-form');
         const result = document.getElementById('result');
-        const educationSelect = form.querySelector('select[name="education.level"]');
+        const educationSelect = form.querySelector('select[name="education"]');
         const educationNumDisplay = form.querySelector('select[name="education.num_display"]');
         const hiddenEducationNum = document.getElementById('hiddenEducationNum');
+        const endpointLinks = [
+            { id: 'link-root', path: '/' },
+            { id: 'link-health', path: '/health' },
+            { id: 'link-metrics', path: '/metrics' },
+            { id: 'link-docs', path: '/docs' },
+        ];
         const educationNumberByLevel = {
             '1st-4th': '2',
             '5th-6th': '3',
@@ -246,6 +288,14 @@ def root() -> str:
             'Prof-school': '15',
             'Doctorate': '16',
         };
+
+        endpointLinks.forEach((item) => {
+            const anchor = document.getElementById(item.id);
+            if (anchor) {
+                anchor.href = `${window.location.origin}${item.path}`;
+                anchor.textContent = `${window.location.origin}${item.path}`;
+            }
+        });
 
         function syncEducationNumber() {
             const mapped = educationNumberByLevel[educationSelect.value];
