@@ -11,7 +11,7 @@ from pipeline_project.utils import load_model
 
 @lru_cache(maxsize=1)
 def _load_artifacts() -> tuple:
-    project_root = Path(__file__).resolve().parents[3]
+    project_root = Path(__file__).resolve().parents[2]
     model_path = project_root / "models" / "model.pkl"
     columns_path = project_root / "models" / "columns.pkl"
 
