@@ -307,3 +307,6 @@ def predict(payload: PredictionRequest) -> PredictionResponse:
         return result
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("prediction failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

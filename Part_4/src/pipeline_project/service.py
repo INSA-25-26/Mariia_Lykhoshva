@@ -14,10 +14,10 @@ def _candidate_roots() -> list[Path]:
     cwd = Path.cwd().resolve()
     file_path = Path(__file__).resolve()
     candidates = [
-        cwd,
-        cwd.parent,
         file_path.parents[2],
         file_path.parents[1],
+        cwd,
+        cwd.parent,
     ]
 
     seen = set()
