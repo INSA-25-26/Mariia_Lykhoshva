@@ -198,7 +198,7 @@ def root() -> str:
                 <label>Age (years) <input name="age" type="number" min="1" max="120" value="39" required></label>
                 <label>Work class <select name="workclass" required><option value="">-- Select --</option><option value="Federal-gov">Federal-gov</option><option value="Local-gov">Local-gov</option><option value="Private" selected>Private</option><option value="Self-emp-inc">Self-emp-inc</option><option value="Self-emp-not-inc">Self-emp-not-inc</option><option value="State-gov">State-gov</option></select></label>
                 <label>Final weight (fnlwgt) <input name="fnlwgt" type="number" min="1" value="77516" required></label>
-                <label>Education level <select name="education" required><option value="">-- Select --</option><option value="1st-4th">1st-4th</option><option value="5th-6th">5th-6th</option><option value="7th-8th">7th-8th</option><option value="9th">9th</option><option value="10th">10th</option><option value="11th">11th</option><option value="12th">12th</option><option value="Assoc-acdm">Assoc-acdm</option><option value="Assoc-voc">Assoc-voc</option><option value="Bachelors" selected>Bachelors</option><option value="Doctorate">Doctorate</option><option value="HS-grad">HS-grad</option><option value="Masters">Masters</option><option value="Prof-school">Prof-school</option><option value="Some-college">Some-college</option></select></label>
+                <label>Education level <select name="education" required><option value="">-- Select --</option><option value="1st-4th">1st-4th</option><option value="5th-6th">5th-6th</option><option value="7th-8th">7th-8th</option><option value="9th">9th</option><option value="10th">10th</option><option value="11th">11th</option><option value="12th">12th</option><option value="Assoc-acdm">Assoc-acdm</option><option value="Assoc-voc">Assoc-voc</option><option value="Bachelors" selected>Bachelors</option><option value="Doctorate">Doctorate</option><option value="HS-grad">HS-grad</option><option value="Masters">Masters</option><option value="Prof-school">Prof-school</option><option value="Some-college">Some-college</option></select><span class="small">Education number is auto-filled from this value.</span></label>
                 <label>Education number <select name="education.num" required><option value="">-- Select --</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13" selected>13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option></select></label>
                 <label>Marital status <select name="marital.status" required><option value="">-- Select --</option><option value="Divorced">Divorced</option><option value="Married-civ-spouse">Married-civ-spouse</option><option value="Married-spouse-absent">Married-spouse-absent</option><option value="Never-married" selected>Never-married</option><option value="Separated">Separated</option><option value="Widowed">Widowed</option></select></label>
                 <label>Occupation <select name="occupation" required><option value="">-- Select --</option><option value="Adm-clerical" selected>Adm-clerical</option><option value="Armed-Forces">Armed-Forces</option><option value="Craft-repair">Craft-repair</option><option value="Exec-managerial">Exec-managerial</option><option value="Farming-fishing">Farming-fishing</option><option value="Handlers-cleaners">Handlers-cleaners</option><option value="Machine-op-inspct">Machine-op-inspct</option><option value="Other-service">Other-service</option><option value="Priv-house-serv">Priv-house-serv</option><option value="Prof-specialty">Prof-specialty</option><option value="Protective-serv">Protective-serv</option><option value="Sales">Sales</option><option value="Tech-support">Tech-support</option><option value="Transport-moving">Transport-moving</option></select></label>
@@ -225,6 +225,35 @@ def root() -> str:
     <script>
         const form = document.getElementById('prediction-form');
         const result = document.getElementById('result');
+        const educationSelect = form.querySelector('select[name="education"]');
+        const educationNumSelect = form.querySelector('select[name="education.num"]');
+        const educationNumberByLevel = {
+            '1st-4th': '2',
+            '5th-6th': '3',
+            '7th-8th': '4',
+            '9th': '5',
+            '10th': '6',
+            '11th': '7',
+            '12th': '8',
+            'HS-grad': '9',
+            'Some-college': '10',
+            'Assoc-voc': '11',
+            'Assoc-acdm': '12',
+            'Bachelors': '13',
+            'Masters': '14',
+            'Prof-school': '15',
+            'Doctorate': '16',
+        };
+
+        function syncEducationNumber() {
+            const mapped = educationNumberByLevel[educationSelect.value];
+            if (mapped) {
+                educationNumSelect.value = mapped;
+            }
+        }
+
+        educationSelect.addEventListener('change', syncEducationNumber);
+        syncEducationNumber();
 
         function renderPrediction(data) {
             const label = data.prediction ? 'Income above 50K' : 'Income at or below 50K';
@@ -259,6 +288,10 @@ def root() -> str:
             result.innerHTML = '<div class="small">Predicting...</div>';
 
             const payload = Object.fromEntries(new FormData(form).entries());
+            const mappedEducationNum = educationNumberByLevel[payload.education];
+            if (mappedEducationNum) {
+                payload['education.num'] = mappedEducationNum;
+            }
             for (const key of Object.keys(payload)) {
                 if (!Number.isNaN(Number(payload[key])) && payload[key].trim?.() !== '') {
                     payload[key] = Number(payload[key]);
