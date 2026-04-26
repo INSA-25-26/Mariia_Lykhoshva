@@ -51,10 +51,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Print deploy revision
+        run: |
+          echo "Deploying commit: $GITHUB_SHA"
+          git rev-parse --short HEAD
+
       - name: Prepare Part_4 deployment package
         run: |
+          set -euo pipefail
           cd Part_4
+          grep -q "Quick links" src/pipeline_project/main.py
+          grep -q "education.num_display" src/pipeline_project/main.py
+          grep -q "required disabled" src/pipeline_project/main.py
           zip -r ../part4-deploy.zip .
+          cd ..
+          unzip -p part4-deploy.zip src/pipeline_project/main.py | grep -q "Quick links"
+          unzip -p part4-deploy.zip src/pipeline_project/main.py | grep -q "education.num_display"
+          unzip -p part4-deploy.zip src/pipeline_project/main.py | grep -q "required disabled"
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
