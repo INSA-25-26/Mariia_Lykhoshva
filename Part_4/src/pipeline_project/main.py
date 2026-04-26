@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -54,7 +55,7 @@ async def metrics_and_logging_middleware(request: Request, call_next):
 
 @app.get("/", response_class=HTMLResponse)
 def root() -> str:
-    return """
+    html = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -253,6 +254,9 @@ def root() -> str:
                         <li><a id="link-health" href="/health" target="_blank" rel="noopener noreferrer">Health endpoint</a></li>
                         <li><a id="link-metrics" href="/metrics" target="_blank" rel="noopener noreferrer">Metrics endpoint</a></li>
                         <li><a id="link-docs" href="/docs" target="_blank" rel="noopener noreferrer">Swagger docs</a></li>
+                        <li><a id="link-grafana" href="#" target="_blank" rel="noopener noreferrer">Grafana URL not configured</a></li>
+                        <li><a id="link-prometheus" href="#" target="_blank" rel="noopener noreferrer">Prometheus URL not configured</a></li>
+                        <li><a id="link-loki" href="#" target="_blank" rel="noopener noreferrer">Loki URL not configured</a></li>
                     </ul>
                     <div class="small">Share these public links with the teacher (not localhost).</div>
                 </section>
@@ -270,6 +274,11 @@ def root() -> str:
             { id: 'link-health', path: '/health' },
             { id: 'link-metrics', path: '/metrics' },
             { id: 'link-docs', path: '/docs' },
+        ];
+        const cloudLinks = [
+            { id: 'link-grafana', url: '__GRAFANA_URL__', label: 'Grafana' },
+            { id: 'link-prometheus', url: '__PROMETHEUS_URL__', label: 'Prometheus' },
+            { id: 'link-loki', url: '__LOKI_URL__', label: 'Loki' },
         ];
         const educationNumberByLevel = {
             '1st-4th': '2',
@@ -294,6 +303,15 @@ def root() -> str:
             if (anchor) {
                 anchor.href = `${window.location.origin}${item.path}`;
                 anchor.textContent = `${window.location.origin}${item.path}`;
+            }
+        });
+
+        cloudLinks.forEach((item) => {
+            const anchor = document.getElementById(item.id);
+            if (!anchor) return;
+            if (item.url && item.url.startsWith('http')) {
+                anchor.href = item.url;
+                anchor.textContent = item.url;
             }
         });
 
@@ -368,6 +386,11 @@ def root() -> str:
 </body>
 </html>
 """
+    return (
+        html.replace("__GRAFANA_URL__", os.getenv("GRAFANA_URL", ""))
+        .replace("__PROMETHEUS_URL__", os.getenv("PROMETHEUS_URL", ""))
+        .replace("__LOKI_URL__", os.getenv("LOKI_URL", ""))
+    )
 
 
 @app.get("/health")
