@@ -258,7 +258,6 @@ def root() -> str:
                         <li><a id="link-prometheus" href="#" target="_blank" rel="noopener noreferrer">Prometheus URL not configured</a></li>
                         <li><a id="link-loki" href="#" target="_blank" rel="noopener noreferrer">Loki URL not configured</a></li>
                     </ul>
-                    <div class="small">Share these public links with the teacher (not localhost).</div>
                 </section>
             </aside>
         </section>
