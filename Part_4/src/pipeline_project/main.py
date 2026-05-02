@@ -247,18 +247,6 @@ def root() -> str:
                 <div class="result-box" id="result">
                     <div class="small">Fill the form and press Predict.</div>
                 </div>
-                <section class="links" aria-label="Service links">
-                    <h3>Quick links</h3>
-                    <ul>
-                        <li><a id="link-root" href="/" target="_blank" rel="noopener noreferrer">Service root</a></li>
-                        <li><a id="link-health" href="/health" target="_blank" rel="noopener noreferrer">Health endpoint</a></li>
-                        <li><a id="link-metrics" href="/metrics" target="_blank" rel="noopener noreferrer">Metrics endpoint</a></li>
-                        <li><a id="link-docs" href="/docs" target="_blank" rel="noopener noreferrer">Swagger docs</a></li>
-                        <li><a id="link-grafana" href="#" target="_blank" rel="noopener noreferrer">Grafana URL not configured</a></li>
-                        <li><a id="link-prometheus" href="#" target="_blank" rel="noopener noreferrer">Prometheus URL not configured</a></li>
-                        <li><a id="link-loki" href="#" target="_blank" rel="noopener noreferrer">Loki URL not configured</a></li>
-                    </ul>
-                </section>
             </aside>
         </section>
     </main>
