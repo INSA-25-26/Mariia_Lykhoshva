@@ -1,19 +1,80 @@
-# Infrastructure
+# Infrastructure (Part 4 Deployment)
 
-This folder contains the AWS EC2 deployment workflow for Part IV.
+This directory contains the full deployment workflow for running the Pipeline Project on AWS EC2 using Docker, Ansible, and Terraform.
 
-## Layout
+---
 
-- `terraform/` - EC2 provisioning with security group and public IP outputs
-- `ansible/` - playbook and inventory templates for Docker-based deployment
+## Overview
 
-## Intended flow
+The project is deployed as a containerized application with a monitoring stack:
 
-1. Build and publish the Docker image from GitHub Actions on push to `main`.
-2. Use Terraform to provision an Ubuntu EC2 instance.
-3. Use Ansible to install Docker, pull the published image, and run the app + monitoring stack via Compose.
-4. Validate deployment:
-	- App: `http://<public-ip>:8000/health`
-	- App (port 80): `http://<public-ip>/health`
-	- Grafana: `http://<public-ip>:3000`
-	- Prometheus: `http://<public-ip>:9090`
+- **Application (FastAPI)** – ML inference service
+- **Grafana** – visualization dashboard
+- **Prometheus** – metrics collection
+- **Loki** – log aggregation
+
+Deployment is automated using:
+
+- **Terraform** → provisions EC2 instance
+- **Ansible** → installs Docker and runs services
+- **Docker Compose** → orchestrates containers
+
+---
+
+## Project Structure
+
+- `terraform/` – EC2 provisioning (instance + security group + outputs)
+- `ansible/` – playbook and inventory for deployment
+- `docker-compose.prod.yml` – defines application and monitoring stack
+
+---
+
+## Deployment Flow
+
+1. Build and push Docker image (via GitHub Actions or manually)
+2. Provision EC2 instance using Terraform
+3. Run Ansible playbook to:
+   - install Docker
+   - pull the image
+   - start services using Docker Compose
+4. Access services via public IP
+
+---
+
+## Running Deployment (Live Demo)
+
+All services are publicly доступні:
+
+- Application UI:  
+  http://16.171.78.151:8000/
+
+- Health check:  
+  http://16.171.78.151:8000/health
+
+- Metrics:  
+  http://16.171.78.151:8000/metrics
+
+- Grafana:  
+  http://16.171.78.151:3000  
+  Username: admin  
+  Password: MyStrongPass_2026!
+
+- Prometheus:  
+  http://16.171.78.151:9090/
+
+- Loki (health check):  
+  http://16.171.78.151:3100/ready
+
+---
+
+## Result
+
+The deployment results in a fully working cloud-based system with:
+
+- ML inference API
+- Monitoring (metrics + logs)
+- Visualization via Grafana
+
+This completes Part 4 (Infrastructure & Deployment).
+
+
