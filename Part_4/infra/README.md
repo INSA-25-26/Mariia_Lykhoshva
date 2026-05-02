@@ -1,15 +1,19 @@
 # Infrastructure
 
-This folder contains the Azure deployment workflow for Part IV.
+This folder contains the AWS EC2 deployment workflow for Part IV.
 
 ## Layout
 
-- `terraform/` - Azure VM provisioning with VNet, subnet, NSG, and public IP
-- `ansible/` - playbook and inventory template for configuring the VM and running the stack
+- `terraform/` - EC2 provisioning with security group and public IP outputs
+- `ansible/` - playbook and inventory templates for Docker-based deployment
 
 ## Intended flow
 
-1. Build and publish the Docker image from GitHub Actions.
-2. Use Terraform to provision an Azure Linux VM.
-3. Use Ansible to install Docker, clone the repository, and start the stack with `docker compose`.
-4. Validate the deployment with `scripts/test_client.py` and Grafana/Prometheus URLs.
+1. Build and publish the Docker image from GitHub Actions on push to `main`.
+2. Use Terraform to provision an Ubuntu EC2 instance.
+3. Use Ansible to install Docker, pull the published image, and run the app + monitoring stack via Compose.
+4. Validate deployment:
+	- App: `http://<public-ip>:8000/health`
+	- App (port 80): `http://<public-ip>/health`
+	- Grafana: `http://<public-ip>:3000`
+	- Prometheus: `http://<public-ip>:9090`

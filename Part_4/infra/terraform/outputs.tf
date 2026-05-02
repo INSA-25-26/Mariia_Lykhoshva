@@ -1,24 +1,29 @@
-output "instance_public_ip" {
-  value       = azurerm_public_ip.this.ip_address
-  description = "Public IP address of the Azure VM"
+output "public_ip" {
+  value       = aws_instance.this.public_ip
+  description = "Public IP address of the EC2 instance"
 }
 
-output "ssh_command" {
-  value       = "ssh -i ${pathexpand(var.private_key_path)} ${var.admin_username}@${azurerm_public_ip.this.ip_address}"
-  description = "SSH command for the provisioned VM"
+output "public_dns" {
+  value       = aws_instance.this.public_dns
+  description = "Public DNS name of the EC2 instance"
 }
 
 output "application_url" {
-  value       = "http://${azurerm_public_ip.this.ip_address}:8000"
+  value       = "http://${aws_instance.this.public_ip}:8000"
   description = "FastAPI application URL"
 }
 
 output "grafana_url" {
-  value       = "http://${azurerm_public_ip.this.ip_address}:3000"
+  value       = "http://${aws_instance.this.public_ip}:3000"
   description = "Grafana URL"
 }
 
 output "prometheus_url" {
-  value       = "http://${azurerm_public_ip.this.ip_address}:9090"
+  value       = "http://${aws_instance.this.public_ip}:9090"
   description = "Prometheus URL"
+}
+
+output "ssh_command" {
+  value       = "ssh -i ~/telco-key.pem ubuntu@${aws_instance.this.public_ip}"
+  description = "SSH command for the provisioned EC2 instance"
 }

@@ -1,17 +1,30 @@
-# Terraform for Azure VM
+# Terraform for AWS EC2
 
-This directory provisions the Azure infrastructure needed for the final cloud deployment.
+This directory provisions AWS infrastructure for cloud deployment.
 
-Expected resources:
+Provisioned resources:
 
-- Resource group
-- Virtual network and subnet
-- Network security group with SSH, app, Prometheus, and Grafana ports
-- Public IP + network interface
-- Ubuntu Linux virtual machine with SSH key authentication
+- Ubuntu EC2 instance
+- Security group with inbound ports: 22, 80, 8000, 3000, 9090, 3100
+- Public IP / DNS outputs
 
-Recommended outputs:
+Required inputs (see `terraform.tfvars.example`):
 
-- VM public IP
-- SSH connection string
-- URLs for the app, Prometheus, and Grafana endpoints
+- `aws_region`
+- `instance_name`
+- `instance_type`
+- `key_name`
+- `allowed_cidr_blocks`
+
+Usage:
+
+1. `terraform init`
+2. `terraform plan -var-file=terraform.tfvars`
+3. `terraform apply -var-file=terraform.tfvars`
+
+Key outputs:
+
+- `public_ip`
+- `public_dns`
+- `ssh_command`
+- `application_url`

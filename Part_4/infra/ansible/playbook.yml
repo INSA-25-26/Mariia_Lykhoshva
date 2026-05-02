@@ -1,13 +1,13 @@
 ---
-- name: Deploy pipeline project stack on Azure VM
+- name: Deploy pipeline project stack on AWS EC2
   hosts: app
   become: true
   vars:
     app_dir: /opt/pipeline-project
-    project_subdir: Part_4
     repo_url: https://github.com/INSA-25-26/Mariia_Lykhoshva.git
     repo_version: main
-    grafana_admin_password: admin123
+    app_image: "{{ lookup('env', 'APP_IMAGE') | default('docker.io/library/pipeline-project:latest', true) }}"
+    grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('admin123', true) }}"
   tasks:
     - name: Update apt cache
       ansible.builtin.apt:
@@ -20,7 +20,6 @@
           - curl
           - git
           - gnupg
-          - lsb-release
         state: present
 
     - name: Install Docker and compose plugin
@@ -42,24 +41,35 @@
         state: directory
         mode: "0755"
 
-    - name: Clone the repository
+    - name: Clone repository with deployment files
       ansible.builtin.git:
         repo: "{{ repo_url }}"
-        dest: "{{ app_dir }}"
+        dest: "{{ app_dir }}/repo"
         version: "{{ repo_version }}"
         force: true
 
-    - name: Write Grafana admin password
+    - name: Write runtime environment file
       ansible.builtin.copy:
-        dest: "{{ app_dir }}/{{ project_subdir }}/.env"
+        dest: "{{ app_dir }}/repo/.env"
         content: |
+          APP_IMAGE={{ app_image }}
           GRAFANA_ADMIN_PASSWORD={{ grafana_admin_password }}
         mode: "0600"
 
-    - name: Start the stack
-      ansible.builtin.command: docker compose up -d --build
+    - name: Pull application image
+      ansible.builtin.command: docker pull {{ app_image }}
+      register: docker_pull_result
+      changed_when: "'Downloaded newer image' in docker_pull_result.stderr or 'Status: Downloaded' in docker_pull_result.stdout"
+
+    - name: Start the monitoring and app stack
+      ansible.builtin.shell: |
+        docker compose -f docker-compose.prod.yml down --remove-orphans || true
+        docker compose -f docker-compose.prod.yml up -d
       args:
-        chdir: "{{ app_dir }}/{{ project_subdir }}"
+        chdir: "{{ app_dir }}/repo"
+      environment:
+        APP_IMAGE: "{{ app_image }}"
+        GRAFANA_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
 
     - name: Wait for application health endpoint
       ansible.builtin.uri:

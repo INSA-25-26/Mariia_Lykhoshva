@@ -134,65 +134,96 @@ docker run --rm -p 8000:8000 pipeline-project:local
 
 ## Part IV deployment stack
 
-The repo now includes an Azure-oriented deployment stack:
+The repo now includes an AWS-oriented deployment stack:
 
-- `docker-compose.yml` - runs the API, Prometheus, Grafana, Loki, and Promtail together
+- `.github/workflows/ci.yml` - CI on push to `main` (tests + Docker build + Docker Hub push)
+- `docker-compose.yml` - local stack with image build
+- `docker-compose.prod.yml` - production stack for VM deployment (pulls app image from registry)
 - `deploy/prometheus/` - Prometheus scrape configuration
 - `deploy/loki/` - Loki storage and log aggregation configuration
 - `deploy/promtail/` - Promtail config for shipping container logs to Loki
 - `deploy/grafana/` - Grafana datasource and dashboard provisioning for metrics and logs
-- `infra/terraform/` - Azure VM provisioning (VNet, subnet, NSG, public IP)
-- `infra/ansible/` - Docker installation and service deployment on the VM
+- `infra/terraform/` - AWS EC2 provisioning (security group, public IP/DNS outputs)
+- `infra/ansible/` - Docker installation and service deployment on EC2
 
-### Azure flow
+### CI and deployment flow (AWS)
 
-1. Build and publish the Docker image with GitHub Actions.
-2. Use Terraform to create an Azure Linux VM and network/security resources.
-3. Use Ansible to install Docker, clone the repository, and start the stack with `docker compose`.
-4. Open the app at `http://<vm-public-ip>:8000`, Grafana at `http://<vm-public-ip>:3000`, Prometheus at `http://<vm-public-ip>:9090`, and Loki at `http://<vm-public-ip>:3100`.
+1. Push to `main` to run CI (`.github/workflows/ci.yml`): tests, Docker build, Docker Hub push.
+2. Use Terraform to create an Ubuntu EC2 VM.
+3. Use Ansible to install Docker, pull the published image, and run the app + monitoring stack.
+4. Open:
+  - `http://<public-ip>/health` (port 80 -> app)
+  - `http://<public-ip>:8000/health`
+  - `http://<public-ip>:3000` (Grafana)
+  - `http://<public-ip>:9090` (Prometheus)
+  - `http://<public-ip>:3100` (Loki)
 
-### Fully automated deploy with GitHub Actions
+### Important rule for this repository
 
-You can provision the VM and deploy the stack from GitHub Actions using:
+Deployment to VM is intentionally not done from GitHub Actions.
+Terraform + Ansible are run manually from your workstation.
 
-- `.github/workflows/infra-deploy.yml`
+### Required GitHub repository secrets
 
-This workflow runs on `workflow_dispatch` and executes:
+Add these in GitHub repository settings under Actions secrets:
 
-1. Terraform apply (creates VM + security group)
-2. Ansible playbook (installs Docker + deploys service)
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
 
 ### What you need to register/configure first
 
 Before running CI/CD and infra workflows, configure these accounts/services:
 
-1. GitHub account + repository (required for Actions and GHCR)
-2. Container registry (GHCR is already used in `.github/workflows/docker-publish.yml`)
-3. Azure account with an active subscription (for VM provisioning)
-
-### Required GitHub repository secrets
-
-Add these in GitHub repository settings: `Settings -> Secrets and variables -> Actions`.
-
-- `AZURE_CREDENTIALS` (service principal JSON for `azure/login`)
-- `AZURE_SUBSCRIPTION_ID`
-- `AZURE_SSH_PRIVATE_KEY` (full private key text)
-- `AZURE_SSH_PUBLIC_KEY` (matching public key text)
-- `GRAFANA_ADMIN_PASSWORD`
-
-Optional:
-
-- `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` if you later publish to Docker Hub as well.
+1. GitHub account + repository
+2. Docker Hub account/repository
+3. AWS account with IAM permissions for EC2 provisioning
 
 ### Terraform variables
 
-The Azure Terraform stack expects:
+The AWS Terraform stack expects:
 
-- `subscription_id` - Azure subscription ID
-- `azure_location` - Azure region for resources
-- `vm_size` - VM size, for example `Standard_B1s`
-- `public_key_path` - local path to the SSH public key used for VM login
-- `private_key_path` - local path to the matching private key for SSH access
+- `aws_region` - AWS region (example: `eu-north-1`)
+- `instance_name` - EC2 instance name
+- `instance_type` - EC2 type (example: `t3.micro`)
+- `key_name` - existing AWS key pair name (example: `telco-key`)
+- `allowed_cidr_blocks` - source CIDRs for 22/80/8000/3000/9090/3100
+
+### End-to-end deployment steps
+
+1. Push code to `main` and wait for `.github/workflows/ci.yml` to publish image:
+  - image: `docker.io/<DOCKERHUB_USERNAME>/pipeline-project:latest`
+2. Provision EC2 with Terraform:
+
+```bash
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform apply -var-file=terraform.tfvars
+terraform output -raw public_ip
+```
+
+3. Prepare Ansible inventory:
+
+```bash
+cd ../ansible
+cp inventory.ini.example inventory.ini
+# set ansible_host to terraform output public_ip
+```
+
+4. Deploy via Ansible (no GitHub Actions deployment):
+
+```bash
+export APP_IMAGE=docker.io/<DOCKERHUB_USERNAME>/pipeline-project:latest
+export GRAFANA_ADMIN_PASSWORD=<strong-password>
+ansible-playbook -i inventory.ini playbook.yml
+```
+
+5. Validate endpoints:
+  - `http://<public-ip>/health`
+  - `http://<public-ip>:8000/health`
+  - `http://<public-ip>:3000`
+  - `http://<public-ip>:9090`
+  - `http://<public-ip>:3100`
 
 ### Local monitoring stack
 

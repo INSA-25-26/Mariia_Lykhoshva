@@ -1,0 +1,5 @@
+[app]
+# Fill this host with: terraform output -raw public_ip
+# Example:
+# target ansible_host=13.61.26.153 ansible_user=ubuntu ansible_ssh_private_key_file=~/telco-key.pem
+target ansible_host=REPLACE_WITH_TERRAFORM_PUBLIC_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/telco-key.pem
