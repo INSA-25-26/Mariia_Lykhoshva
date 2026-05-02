@@ -31,6 +31,40 @@ Secrets configured in GitHub Actions:
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
+How to add them:
+
+1. Open your GitHub repository.
+2. Go to `Settings` → `Secrets and variables` → `Actions`.
+3. Click `New repository secret`.
+4. Add `DOCKERHUB_USERNAME` with your Docker Hub username.
+5. Add `DOCKERHUB_TOKEN` with your Docker Hub access token.
+6. Save both secrets.
+
+### Docker Hub
+
+- Create a Docker Hub repository named `pipeline-project` under your Docker Hub namespace.
+- Create a Docker Hub access token in Account Settings → Security → New Access Token.
+- Add the Docker Hub username and access token to GitHub repository secrets.
+- The CI workflow publishes the image as `docker.io/<DOCKERHUB_USERNAME>/pipeline-project:latest`.
+- If you want a different image name, update the `IMAGE_NAME` value in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+How to create the Docker Hub repository:
+
+1. Open [hub.docker.com](https://hub.docker.com/) and sign in.
+2. Go to `Repositories`.
+3. Click `Create repository`.
+4. Set the name to `pipeline-project`.
+5. Keep it public unless you specifically want a private image.
+6. Save the repository.
+
+How to create the access token:
+
+1. Open Docker Hub account settings.
+2. Go to `Security`.
+3. Click `New Access Token`.
+4. Name the token, create it, and copy the value once.
+5. Paste that token into the GitHub secret `DOCKERHUB_TOKEN`.
+
 ### AWS Account
 
 - Active subscription
@@ -64,6 +98,12 @@ docker pull docker.io/YOUR_DOCKERHUB_USERNAME/pipeline-project:latest
 ```
 
 **Expected Output**: Image pulled successfully without errors.
+
+If the push fails with a repository-not-found or unauthorized error, verify that:
+
+- the `pipeline-project` repository exists in Docker Hub,
+- `DOCKERHUB_USERNAME` matches your Docker Hub account,
+- `DOCKERHUB_TOKEN` is a valid access token with write permissions.
 
 ---
 
