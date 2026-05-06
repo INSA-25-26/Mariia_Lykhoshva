@@ -1,102 +1,341 @@
-# Pipeline Project
+# Income Classification Pipeline - Part 4
 
-Production-ready ML pipeline for binary classification using scikit-learn with data preprocessing and model management.
+This is the final part of the income prediction project. It combines everything from the previous parts and adds a REST API, Docker support, and deployment to AWS with monitoring.
 
-## Features
+## What's in Here?
 
-- **Reproducible training**: Fixed random seed for deterministic results
-- **Data processing**: Stateful (with statistics) and stateless transformers
-- **Pipeline management**: Save/load trained models with `joblib`
-- **Comprehensive tests**: Unit tests, integration tests, and differential tests
-- **Production-ready**: Proper project structure with `pyproject.toml` configuration
+The project takes data about people (age, education, job, etc.) and predicts whether their income is above or below 50k per year. We use a scikit-learn pipeline that handles data preprocessing, feature engineering, and model training automatically.
 
-## Installation
+On top of the ML stuff, there's a FastAPI REST API so you can send prediction requests, everything is dockerized for easy deployment, and there's monitoring with Prometheus and Grafana when running on AWS.
+
+## Quick Start
+
+### Setup
 
 ```bash
+# Create virtual environment
+python -m venv .venv
+.\.venv\Scripts\activate  # Windows
+# or
+source .venv/bin/activate  # Linux/Mac
+
+# Install
 pip install -e .
 ```
 
-## Project Structure
-
-```
-├── src/pipeline_project/
-│   ├── train.py              # Training script with data loading & preprocessing
-│   ├── predict.py            # Inference script
-│   ├── pipeline.py           # Pipeline assembly
-│   ├── data_processing.py    # Custom transformers
-│   ├── utils.py              # Utility functions
-│   └── __init__.py
-├── tests/
-│   ├── test_pipeline.py      # Unit tests for pipeline
-│   ├── test_processing.py    # Unit tests for transformers
-│   └── test_differential.py  # Differential tests
-├── models/                   # Saved models directory
-└── data.csv                  # Training data
-```
-
-## Usage
-
-### Training
+### Train the Model
 
 ```bash
 python -m pipeline_project.train
 ```
 
-Trains the model on `data.csv` and saves:
-- `models/model.pkl` - Trained sklearn Pipeline
-- `models/columns.pkl` - Feature column names (for consistency)
+This loads `data.csv`, processes it, trains the model, and saves:
+- `models/model.pkl` - the trained model
+- `models/columns.pkl` - feature names (we need this for consistency)
 
-### Prediction
+### Run the API
 
 ```bash
-python -m pipeline_project.predict
+python -m pipeline_project.main
 ```
 
-Loads the trained model and makes predictions on first 5 rows of `data.csv`.
+The API runs on `http://localhost:8000`
 
-## Data Processing
+You can:
+- `POST /predict` - send data and get a prediction
+- `GET /health` - check if it's running
+- `GET /metrics` - get Prometheus metrics
 
-### Stateless Transformer: ColumnDropper
-Removes specified columns without learning anything from the data.
-
-```python
-from pipeline_project.data_processing import ColumnDropper
-
-dropper = ColumnDropper(columns=['col1', 'col2'])
-dropper.fit(X)  # Does nothing
-X_transformed = dropper.transform(X)
+Example request:
+```bash
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "age": 39,
+    "workclass": "State-gov",
+    "fnlwgt": 77516,
+    "education": "Bachelors",
+    "marital_status": "Never-married",
+    "occupation": "Adm-clerical",
+    "relationship": "Not-in-family",
+    "race": "White",
+    "sex": "Male",
+    "hours_per_week": 40
+  }'
 ```
 
-### Stateful Transformer: MeanImputer
-Learns mean values during `fit()` and uses them to impute missing values during `transform()`.
-
-```python
-from pipeline_project.data_processing import MeanImputer
-
-imputer = MeanImputer()
-imputer.fit(X)  # Learns means
-X_transformed = imputer.transform(X)
-print(imputer.means)  # Access learned statistics
-```
-
-## Testing
-
-Run all tests:
+### Run Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-### Test Coverage
+We have three types of tests:
+- Unit tests - check if functions work correctly
+- Integration tests - check if everything works together
+- Differential tests - make sure the model is stable and consistent
 
-- **Unit tests** (`test_pipeline.py`, `test_processing.py`): Test individual components
-- **Differential tests** (`test_differential.py`): Test consistency, determinism, and robustness
-  - Determinism: Same input → Same output
-  - Consistency: Pipeline generalizes across different dataset sizes
-  - Robustness: Handles edge cases (zeros, identical features, large values)
-  - Performance: Model achieves minimum accuracy thresholds
+## Project Layout
 
-## Configuration
+```
+Part_4/
+├── src/pipeline_project/
+│   ├── main.py              # FastAPI app entry point
+│   ├── api.py               # API endpoints
+│   ├── service.py           # Prediction logic
+│   ├── schemas.py           # Request/response models
+│   ├── train.py             # Training script
+│   ├── predict.py           # Inference script
+│   ├── pipeline.py          # ML pipeline assembly
+│   ├── data_processing.py   # Custom transformers
+│   ├── utils.py             # Helper functions
+│   └── __init__.py
+│
+├── tests/
+│   ├── test_pipeline.py     # Tests for ML pipeline
+│   ├── test_api.py          # Tests for API endpoints
+│   ├── test_main.py         # Tests for main logic
+│   ├── test_processing.py   # Tests for data processing
+│   └── test_differential.py # Differential/robustness tests
+│
+├── deploy/                  # Monitoring configuration
+│   ├── grafana/             # Grafana dashboards
+│   ├── prometheus/          # Prometheus config
+│   ├── loki/                # Log aggregation
+│   └── promtail/            # Log collector
+│
+├── infra/                   # Infrastructure code
+│   ├── terraform/           # AWS provisioning
+│   └── ansible/             # Server configuration
+│
+├── scripts/
+│   └── test_client.py       # API test script
+│
+├── models/                  # Saved models go here
+├── docker-compose.yml       # Local Docker
+├── docker-compose.prod.yml  # Production Docker with monitoring
+├── Dockerfile              # Container image
+├── pyproject.toml          # Project config and dependencies
+├── requirements.txt        # Python packages
+└── data.csv                # Training data
+```
+
+## Docker
+
+### Local Development
+
+```bash
+docker-compose up
+```
+
+Runs on `http://localhost:8000`
+
+### Production with Monitoring
+
+```bash
+docker-compose -f docker-compose.prod.yml up
+```
+
+This starts:
+- **API** - `http://localhost:8000`
+- **Grafana** - `http://localhost:3000` (monitoring dashboard)
+- **Prometheus** - `http://localhost:9090` (metrics)
+- **Loki** - `http://localhost:3100` (logs)
+
+## Infrastructure & Deployment
+
+### Architecture Overview
+
+The project is deployed as a containerized application with a complete monitoring stack:
+
+- **Application (FastAPI)** – ML inference service
+- **Grafana** – visualization dashboard
+- **Prometheus** – metrics collection  
+- **Loki** – log aggregation
+
+Deployment is fully automated using:
+
+- **Terraform** → provisions EC2 instance and security groups
+- **Ansible** → installs Docker and configures services
+- **Docker Compose** → orchestrates all containers
+
+### Deployment Flow
+
+1. Build and push Docker image (GitHub Actions or manually)
+2. Provision EC2 instance using Terraform
+3. Run Ansible playbook to:
+   - Install Docker and Docker Compose
+   - Pull the application image
+   - Start all services
+4. Access services via the public EC2 IP
+
+### Infrastructure Directory Structure
+
+```
+infra/
+├── terraform/           # EC2 provisioning
+│   ├── main.tf
+│   ├── variables.tf
+│   └── outputs.tf
+├── ansible/            # Deployment automation
+│   ├── playbook.yml
+│   └── inventory.ini
+└── README.md           # Detailed infrastructure docs
+```
+
+---
+
+## Deploying to AWS
+
+### What You Need
+
+- AWS account
+- Terraform >= 1.6.0
+- Ansible >= 2.12
+- SSH key: `telco-key.pem`
+- Docker Hub account with a repo called `pipeline-project`
+
+### How to Deploy
+
+1. **Build and Push Docker Image**
+
+   Push code to GitHub `main` branch. GitHub Actions automatically builds and pushes the image.
+
+   ```bash
+   git add .
+   git commit -m "Deploy"
+   git push origin main
+   ```
+
+2. **Create AWS Infrastructure**
+
+   ```bash
+   cd infra/terraform
+   terraform init
+   terraform apply \
+     -var aws_region="eu-north-1" \
+     -var instance_type="t3.micro" \
+     -var key_name="telco-key"
+   ```
+
+   This gives you an EC2 instance with a public IP.
+
+3. **Update Ansible**
+
+   Edit `infra/ansible/inventory.ini`:
+   ```ini
+   [app]
+   16.171.78.151 ansible_user=ubuntu ansible_ssh_private_key_file=~/telco-key.pem
+   ```
+
+   Replace the IP with your actual EC2 IP.
+
+4. **Deploy the Application**
+
+   ```bash
+   cd ../ansible
+   export APP_IMAGE="docker.io/YOUR_USERNAME/pipeline-project:latest"
+   export GRAFANA_ADMIN_PASSWORD="your-password"
+   ansible-playbook -i inventory.ini playbook.yml
+   ```
+
+5. **Verify It Works**
+
+   ```bash
+   curl http://<YOUR_IP>:8000/health
+   ```
+
+### Access Your Deployment
+
+- API: `http://16.171.78.151:8000`
+- Grafana: `http://16.171.78.151:3000` (admin / your-password)
+- Prometheus: `http://16.171.78.151:9090`
+- Loki: `http://16.171.78.151:3100`
+
+## Live Deployment (Demo)
+
+The application is currently deployed and available at:
+
+- **Application**: http://16.171.78.151:8000/
+- **Health Check**: http://16.171.78.151:8000/health
+- **Metrics**: http://16.171.78.151:8000/metrics
+- **Grafana Dashboard**: http://16.171.78.151:3000 (admin / MyStrongPass_2026!)
+- **Prometheus**: http://16.171.78.151:9090/
+- **Loki Logs**: http://16.171.78.151:3100/ready
+
+### SSH to the Server
+
+```bash
+ssh -i ~/telco-key.pem ubuntu@16.171.78.151
+
+# Check containers
+docker ps
+
+# View logs
+docker-compose -f /opt/pipeline-project/repo/docker-compose.prod.yml logs -f
+
+# Restart services
+docker-compose -f /opt/pipeline-project/repo/docker-compose.prod.yml restart
+```
+
+## Data Processing
+
+### ColumnDropper
+Removes columns without learning anything:
+```python
+from pipeline_project.data_processing import ColumnDropper
+
+dropper = ColumnDropper(columns=['col1', 'col2'])
+X_clean = dropper.fit_transform(X)
+```
+
+### MeanImputer
+Learns means during training, then fills missing values:
+```python
+from pipeline_project.data_processing import MeanImputer
+
+imputer = MeanImputer()
+X_clean = imputer.fit_transform(X)
+print(imputer.means)  # Check the learned values
+```
+
+## Monitoring
+
+After deploying to AWS, you can check metrics and logs in Grafana:
+
+- Request rate: `sum(rate(pipeline_http_requests_total[5m]))`
+- Error rate: `sum(rate(pipeline_http_requests_total{status=~"5.."}[5m]))`
+- Response time (95th percentile): `histogram_quantile(0.95, rate(pipeline_http_request_duration_seconds_bucket[5m]))`
+
+### Deployment Results
+
+The deployment creates a fully working cloud-based system with:
+
+- ML inference API for income predictions
+- Real-time monitoring (metrics collection + log aggregation)
+- Visualization dashboard (Grafana)
+- Scalable infrastructure on AWS EC2
+
+This completes the full production deployment of the income classification pipeline with monitoring and observability.
+
+## Dependencies
+
+- `scikit-learn` - machine learning
+- `pandas` - data manipulation
+- `fastapi` - web framework
+- `uvicorn` - ASGI server
+- `prometheus-client` - metrics
+- `pytest` - testing
+
+See `pyproject.toml` for complete list.
+
+## License
+
+INSA Project 2025-2026
+
+---
+
+**Author:** Mariia Lykhoshva
 
 Project dependencies are defined in `pyproject.toml`:
 - scikit-learn
